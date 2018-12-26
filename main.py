@@ -1,7 +1,7 @@
 #!/usr/local/bin/python
 # -*- coding: utf-8 -*-
 
-import sys
+import sys, os
 import commands
 import re
 #从PyQt库导入QtWidget通用窗口类,基本的窗口集在PyQt5.QtWidgets模块里.
@@ -60,7 +60,8 @@ if __name__ == '__main__':
     QApplication.setQuitOnLastWindowClosed(False)
     from PyQt5 import QtWidgets
     tp = QSystemTrayIcon()
-    tp.setIcon(QIcon('./usb.png'))
+    basepath = os.path.split(os.path.realpath(__file__))[0]
+    tp.setIcon(QIcon(os.path.join(basepath, 'usb.png')))
 
     tpMenu = QMenu()
 
