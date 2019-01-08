@@ -4,16 +4,18 @@
 import sys, os
 import commands
 import re
-#从PyQt库导入QtWidget通用窗口类,基本的窗口集在PyQt5.QtWidgets模块里.
-from PyQt5.QtWidgets import QApplication, QWidget,QSystemTrayIcon,QAction,QMenu,qApp,QMessageBox
-from PyQt5.QtGui import QIcon
-from PyQt5.QtCore import QCoreApplication
+import argparse
 
 DEBUG = False
 
+parser = argparse.ArgumentParser()
+parser.add_argument("--nw", help="with GUI windows", action="store_true")
+
+
 def getUSBHostInfo():
     result = []
-    ret, info = commands.getstatusoutput("VBoxManage list usbhost")
+    ret, info = commands.getstatusoutput(
+        "/usr/local/bin/VBoxManage list usbhost")
 
     for aa in str(info).split("\n\n"):
         uuid = None
@@ -21,30 +23,77 @@ def getUSBHostInfo():
         state = None
         for aaa in aa.split("\n"):
             uuidpattern = re.compile(
-            r"(?:UUID:)(?:\s*)(?P<UUID>[A-Z0-9]{8}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{12})",
-            re.IGNORECASE|re.DOTALL)
+                r"(?:UUID:)(?:\s*)(?P<UUID>[A-Z0-9]{8}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{12})",
+                re.IGNORECASE | re.DOTALL)
             m = re.search(uuidpattern, str(aaa))
             if m is not None:
-                uuid=m.group('UUID')
+                uuid = m.group('UUID')
                 continue
             productpattern = re.compile(
-            r"(?:Product:)(?:\s*)(?P<PRODUCT>[^\n]+)",
-            re.IGNORECASE|re.DOTALL)
+                r"(?:Product:)(?:\s*)(?P<PRODUCT>[^\n]+)",
+                re.IGNORECASE | re.DOTALL)
             m = re.search(productpattern, str(aaa))
             if m is not None:
-                product=m.group('PRODUCT')
+                product = m.group('PRODUCT')
                 continue
             statepattern = re.compile(
-            r"(?:Current State:)(?:\s*)(?P<STATE>[^\n]+)",
-            re.IGNORECASE|re.DOTALL)
+                r"(?:Current State:)(?:\s*)(?P<STATE>[^\n]+)",
+                re.IGNORECASE | re.DOTALL)
             m = re.search(statepattern, str(aaa))
             if m is not None:
-                state=m.group('STATE')
+                state = m.group('STATE')
                 continue
         if uuid == None or product == None or state == None or state == "Busy":
             continue
         result.append([product, uuid, state])
     return result
+
+args = parser.parse_args()
+if args.nw:
+    print("none GUI")
+    devices = getUSBHostInfo()
+    if DEBUG:
+        print(devices)
+        pass
+    i = 0
+    for device in devices:
+        print("{0} :{1}  {2}".format(i, device[0], device[2]))
+        i = i + 1
+        pass
+    print("{0} :exit".format(i))
+
+    select = i+1
+    while select > i:
+        try:
+            select = int(input("===>"))
+            if select > i:
+                print("\nPlease enter in range")
+                pass
+            pass
+        except NameError:
+            pass
+        pass
+    if select < i:
+        cmd = "/usr/local/bin/VBoxManage controlvm Ubuntu "
+        state = devices[select][2]
+        if state != 'Captured':
+            cmd = cmd + "usbattach "
+            pass
+        else:
+            cmd = cmd + "usbdetach "
+            pass
+        cmd = cmd + devices[select][1]
+        print(cmd)
+        ret, output = commands.getstatusoutput(cmd)
+        print(output)
+        exit(ret)
+        pass
+    exit(0)
+
+#从PyQt库导入QtWidget通用窗口类,基本的窗口集在PyQt5.QtWidgets模块里.
+from PyQt5.QtWidgets import QApplication, QWidget,QSystemTrayIcon,QAction,QMenu,qApp,QMessageBox
+from PyQt5.QtGui import QIcon
+from PyQt5.QtCore import QCoreApplication
 
 if DEBUG:
     for usbinfo in getUSBHostInfo():
@@ -77,9 +126,9 @@ if __name__ == '__main__':
             if (self.state == "Captured"):
                 self.setChecked(True)
             pass
-        
+
         def usbswitch(self, switched):
-            cmd = "VBoxManage controlvm Ubuntu "
+            cmd = "/usr/local/bin/VBoxManager controlvm Ubuntu "
             #ret, info = commands.getstatusoutput(cmd)
             print
             if switched:
@@ -92,7 +141,7 @@ if __name__ == '__main__':
             print(cmd)
             commands.getstatusoutput(cmd)
             return
-            
+
     def addUSBHostlist():
         actions = []
         usbinfos = getUSBHostInfo()
